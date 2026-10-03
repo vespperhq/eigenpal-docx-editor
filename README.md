@@ -2,17 +2,22 @@
 
 A browser-based Word editing example: a chat on the left, an editable `.docx`
 on the right. A Mastra agent edits the document through
-[Vespper](https://vespper.com), and every committed edit streams into
-[EigenPal's docx-editor](https://github.com/eigenpal/docx-editor) as a tracked
-change, while the agent is still working.
+[Vespper](https://vespper.com), and its edits land in
+[EigenPal's docx-editor](https://github.com/eigenpal/docx-editor) as tracked
+changes.
 
 The example includes the following features:
 
 - Drag-and-drop `.docx` loading
-- Streamed edits through the docx-editor [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
+- Suggestion cards to review, edit, accept, or reject the agent's edits
+- Streamed edits through the docx-editor
+  [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
+- Tracked changes rendered as redlines, with a review rail and highlights on new edits
 - Pasted image context
 - Multi-model selection
 - Stop and download
+
+This example is also available through [Vespper Examples](https://github.com/vespperhq/examples).
 
 ## Prerequisites
 
@@ -29,10 +34,11 @@ The example includes the following features:
 
 ## 2. Install the example
 
-From the repository root:
+Clone this repository, then install the dependencies:
 
 ```bash
-cd docx-editor
+git clone https://github.com/vespperhq/eigenpal-docx-editor.git
+cd eigenpal-docx-editor
 npm install
 cp .env.example .env
 ```
@@ -42,7 +48,6 @@ want to use:
 
 ```bash
 VESPPER_API_KEY=sk_live_your_key_here
-VESPPER_MCP_URL=https://mcp.vespper.com/mcp
 OPENAI_API_KEY=sk-your_openai_key_here
 ```
 
@@ -59,6 +64,13 @@ OpenAI GPT 5.6 Sol is the default. To start with another model, set
 
 ```bash
 DOCX_AGENT_MODEL=anthropic/claude-sonnet-4.5
+```
+
+By default, the agent proposes edits as suggestion cards that you accept or
+reject. To have it apply edits to the document as it writes them, set:
+
+```bash
+USE_SUGGESTIONS=false
 ```
 
 ## 3. Run it
@@ -81,31 +93,44 @@ To verify configuration, open
 2. Ask for an edit, for example `Change the effective date to January 1, 2027`.
 3. Optionally paste images into the prompt.
 
-The agent's edits appear as tracked changes while it works, and each new edit
-is briefly highlighted. The document is read-only during a run. Use the review
-rail to accept or reject changes, and **Download .docx** to save the result
-with its tracked changes.
+With suggestions on, each edit appears as a card in the chat while the agent
+writes it. Edit a card's text if you want, then accept or reject it, or use
+**Apply all**. Accepted edits land in the document as tracked changes and are
+briefly highlighted. The agent is told which suggestions you accepted, edited,
+or rejected on the next turn.
+
+With suggestions off, the agent's edits stream into the document as tracked
+changes while it works.
+
+The document is read-only while the agent runs or edits are being applied. Use
+the review rail to accept or reject tracked changes, and **Download .docx** to
+save the result.
 
 ## How it works
 
 The API server opens and closes a Vespper document session for each turn with
 the `vespper` SDK, and auto-patches Mastra's MCP tools so reads, searches, and
 edits carry the correct session and tracked-change metadata. It wraps
-`edit_document` to parse streamed edit arguments, so edits apply while the
-model is still writing them. Every committed revision is sent to the browser as
-an `edit_applied` event carrying the complete, cumulative `.docx`.
+`edit_document` to handle each edit pair while the model is still writing the
+call:
 
-In the browser, each turn follows the document refresh flow:
+- In suggestion mode, the patched tool only locates each edit and returns it as
+  a suggestion, sent to the browser as a `suggestion_ready` event. Accepted
+  suggestions go to `POST /api/apply`, which applies them with `applyEdits()`.
+- Otherwise, each pair is applied immediately, and every committed revision is
+  sent as an `edit_applied` event carrying the complete, cumulative `.docx`.
+
+In the browser, every document update follows the document refresh flow:
 
 1. `refresh.capture()` snapshots the current document, and those bytes go to
-   `POST /api/process` with the conversation.
+   the server.
 2. Each `edit_applied` event calls
    `refresh.applyUpdate({ submission, sequence: revision, bytes })`. The editor
    swaps the document without remounting and keeps the scroll position. If
    several revisions arrive during one replacement, only the newest is loaded.
 3. `refresh.highlightChanges()` flashes the new tracked revisions. The review
    module finds them in the returned file; nothing is diffed in the browser.
-4. `refresh.finish(submission)` closes the turn. **Stop** aborts the request
+4. `refresh.finish(submission)` closes the update. **Stop** aborts the request
    and calls `refresh.cancel()`.
 
 Each accepted update resets the editor's selection and undo history.
@@ -117,18 +142,20 @@ Each accepted update resets the editor's selection and undo history.
 | `npm run dev`       | Run the API server and the Vite dev server  |
 | `npm start`         | Build the web app and serve it from the API |
 | `npm run build`     | Build the web app into `dist/`              |
+| `npm test`          | Run the suggestion card tests               |
 | `npm run typecheck` | Type-check the server and the web app       |
 
 ## Project layout
 
 ```text
-docx-editor/
+eigenpal-docx-editor/
 ├── server/          Express API server and Mastra agent
 ├── shared/          Message contracts shared by client and server
 ├── src/
 │   ├── agent/       Streaming client and document refresh orchestration
 │   ├── chat/        Chat panel and agent trace rendering
-│   └── document/    docx-editor pane, drop zone, and download
+│   ├── document/    docx-editor pane, drop zone, and download
+│   └── suggestions/ Suggestion cards, their editor, and the apply flow
 ├── .env.example
 └── package.json
 ```
@@ -147,3 +174,11 @@ accepted state and keeps them in the saved file.
 
 `.env` is ignored by Git. Vespper and model-provider keys are read only by the
 local Node.js server and are never bundled into the web app.
+
+## Updating the examples collection
+
+Push changes to this repository normally. The workflow in
+[Vespper Examples](https://github.com/vespperhq/examples) checks all of its
+submodules every five minutes and updates their pointers automatically.
+No workflow or secret is required in this repository. GitHub may delay scheduled
+runs, so an update can take longer than five minutes.
