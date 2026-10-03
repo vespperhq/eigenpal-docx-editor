@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @source "./**/*.{ts,tsx}";
+/* Test HTML holds document class names (bg-white, ml-[0.25in], ...); as panel
+   utilities they would style every suggestion card. */
+@source not "./**/*.test.ts";
+@source not "./**/fixtures.ts";
 
 @theme inline {
   --color-background: var(--background);
@@ -21,6 +25,7 @@
   --muted-foreground: #787572;
   --destructive: #c64545;
   --border: #e5e7eb;
+  --suggestion-insert: #15803d;
 }
 
 @layer base {
@@ -40,4 +45,38 @@
     background: var(--background);
     color: var(--foreground);
   }
+}
+
+/* Suggestion cards render document HTML without its page layout (see
+   suggestions/css.ts). List markers go too: a fragment's numbering restarts at
+   1, so it would be wrong out of context. A resolved side can be a bare <li>,
+   which draws its own marker without a list around it. */
+.vespper-docx :is(ul, ol, li) {
+  list-style: none;
+  padding-left: 0;
+}
+.vespper-docx :is(td, th) {
+  padding: 0 4px;
+}
+.vespper-docx .ProseMirror > :first-child {
+  margin-top: 0;
+}
+.vespper-docx .ProseMirror > :last-child {
+  margin-bottom: 0;
+}
+/* Backgrounds can also come from inline styles or a panel utility that shares
+   a document class name, so they are cleared outright. */
+.vespper-docx .ProseMirror * {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* The diff colors win over the document's own text and link colors. */
+.vespper-docx :is(.vespper-suggestion-insert, .vespper-suggestion-insert *) {
+  color: var(--suggestion-insert) !important;
+  text-decoration: underline;
+}
+.vespper-docx :is(.vespper-suggestion-delete, .vespper-suggestion-delete *) {
+  color: var(--destructive) !important;
+  text-decoration: line-through;
 }
