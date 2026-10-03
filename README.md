@@ -11,14 +11,10 @@ The example includes the following features:
 - Suggestion cards to review, edit, accept, or reject the agent's edits
 - Streamed edits through the docx-editor
   [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
-- Tracked changes rendered as redlines, with a review rail and highlights on new edits
-- Previous change, Next change, and Accept all changes controls
-- Selected-text context: select text in the document to include it in your prompt
+- Tracked changes
+- Selected-text context: select text in the document to include it in the prompt
 - Pasted image context
 - Multi-model selection
-- Stop and download
-
-This example is also available through [Vespper Examples](https://github.com/vespperhq/examples).
 
 ## Prerequisites
 
@@ -80,64 +76,64 @@ USE_SUGGESTIONS=false
 npm run dev
 ```
 
-This starts the API server at `http://localhost:3001` and the web app at
-[http://localhost:5173](http://localhost:5173). Vite proxies `/api` and
+This starts the API server at `http://localhost:3001` and the web app at  
+[http://localhost:5173](http://localhost:5173). Vite proxies `/api` and  
 `/health` to the API server.
-
-To verify configuration, open
-[http://localhost:5173/health](http://localhost:5173/health). Both
-`vespperConfigured` and `agentConfigured` should be `true`.
 
 ## Try an edit
 
-1. Drop a `.docx` onto the right pane, or use **Open .docx**.
-2. Ask for an edit, for example `Change the effective date to January 1, 2027`.
+1. Drop a `.docx` onto the right pane.
+2. Ask the AI agent for an edit.
 3. Optionally select text in the document to include it as context, or paste
    images into the prompt.
 
-With suggestions on, each edit appears as a card in the chat while the agent
-writes it. Edit a card's text if you want, then accept or reject it, or use
-**Apply all**. Accepted edits land in the document as tracked changes and are
+With suggestions **on**, each edit appears as a card in the chat while the agent writes it. Edit a card's text if you want, then accept or reject it, or use **Apply all**. Accepted edits land in the document as tracked changes and are
 briefly highlighted. The agent is told which suggestions you accepted, edited,
 or rejected on the next turn.
 
-With suggestions off, the agent's edits stream into the document as tracked
+With suggestions off, the agent's edits stream into the document as tracked  
 changes while it works.
-
-The document is read-only while the agent runs or edits are being applied. Use
-**Previous change** and **Next change** to step through tracked changes, the
-review rail or **Accept all changes** to resolve them, and **Download .docx** to
-save the result. Drag the divider between the chat and the document to resize
-the chat.
 
 ## How it works
 
-The API server opens and closes a Vespper document session for each turn with
-the `vespper` SDK, and auto-patches Mastra's MCP tools so reads, searches, and
-edits carry the correct session and tracked-change metadata. It wraps
-`edit_document` to handle each edit pair while the model is still writing the
-call:
+The API server follows Vespper's
+[live-editing architecture](https://docs.vespper.com/live-editing/introduction): it runs an agent with the Vespper tools and handles each `old`/`new` pair
+of an `edit_document` call as soon as the model finishes writing it.
 
-- In suggestion mode, the patched tool only locates each edit and returns it as
-  a suggestion, sent to the browser as a `suggestion_ready` event. Accepted
-  suggestions go to `POST /api/apply`, which applies them with `applyEdits()`.
-- Otherwise, each pair is applied immediately, and every committed revision is
-  sent as an `edit_applied` event carrying the complete, cumulative `.docx`.
+- **Suggestion mode** (the default): each pair is proposed to the user in the chat without changing the document as a suggestion card. Accepted cards go to `POST /api/apply`, which applies them. See
+  [Suggestions](https://docs.vespper.com/live-editing/suggestions).
+- **Direct mode** (`USE_SUGGESTIONS=false`): each pair is applied right away.
 
-In the browser, every document update follows the document refresh flow:
+In both modes, every change to the document reaches the browser as an
+`edit_applied` event that carries the complete, **cumulative** `.docx` and its
+revision number.
 
-1. `refresh.capture()` snapshots the current document, and those bytes go to
-   the server.
+### Updating the editor
+
+The browser never patches the document itself. It loads each new file through
+the docx-editor
+[document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh),
+the same way for an agent turn in direct mode and for **Apply** in suggestion
+mode:
+
+1. `refresh.capture()` snapshots the open document. Those bytes are what the
+   server edits.
 2. Each `edit_applied` event calls
    `refresh.applyUpdate({ submission, sequence: revision, bytes })`. The editor
-   swaps the document without remounting and keeps the scroll position. If
+   replaces the document without remounting and keeps the scroll position. If
    several revisions arrive during one replacement, only the newest is loaded.
 3. `refresh.highlightChanges()` flashes the new tracked revisions. The review
    module finds them in the returned file; nothing is diffed in the browser.
 4. `refresh.finish(submission)` closes the update. **Stop** aborts the request
    and calls `refresh.cancel()`.
 
-Each accepted update resets the editor's selection and undo history.
+The document is read-only while an update runs, because an edit made after
+`capture()` makes the editor refuse the next file. Each accepted file resets the
+editor's selection and undo history.
+
+Steps 2 and 3 live in `src/agent/updateQueue.ts`. The agent turn drives them
+from `src/hooks/useChatConversation.ts`, and **Apply** from
+`src/hooks/useSuggestions.ts`.
 
 ## Development commands
 
@@ -168,23 +164,10 @@ eigenpal-docx-editor/
 
 ## Licensing
 
-This example is [MIT](./LICENSE) licensed. It depends on
-`@docx-editor.dev/pro` for tracked-change rendering and the review rail, which
-is distributed under the
-[EigenPal Pro Evaluation License](https://www.docx-editor.dev/docs/2.x/pro#licensing):
-internal, non-production evaluation only. Contact EigenPal for a production
-license. Without the review module, docx-editor shows revisions in their
+This example is [MIT](./LICENSE) licensed. It depends on  
+`@docx-editor.dev/pro` for tracked-change rendering and the review rail, which  
+is distributed under the  
+[EigenPal Pro Evaluation License](https://www.docx-editor.dev/docs/2.x/pro#licensing):  
+internal, non-production evaluation only. Contact EigenPal for a production  
+license. Without the review module, docx-editor shows revisions in their  
 accepted state and keeps them in the saved file.
-
-## Security
-
-`.env` is ignored by Git. Vespper and model-provider keys are read only by the
-local Node.js server and are never bundled into the web app.
-
-## Updating the examples collection
-
-Push changes to this repository normally. The workflow in
-[Vespper Examples](https://github.com/vespperhq/examples) checks all of its
-submodules every five minutes and updates their pointers automatically.
-No workflow or secret is required in this repository. GitHub may delay scheduled
-runs, so an update can take longer than five minutes.
