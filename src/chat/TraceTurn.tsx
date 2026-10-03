@@ -1,4 +1,6 @@
+import { Fragment } from "react";
 import ReactMarkdown from "react-markdown";
+import { SuggestionList } from "../suggestions/SuggestionList";
 import type { Turn } from "./types";
 import { Icon } from "./Icon";
 import { ImageAttachments } from "./ImageAttachments";
@@ -11,6 +13,12 @@ type TraceTurnProps = {
 };
 
 export function TraceTurn({ turn, onTogglePart }: TraceTurnProps) {
+  // All of the turn's edit_document calls share one suggestion list, shown
+  // after the latest of them.
+  const editPartIds = turn.parts
+    .filter((part) => part.kind === "tool" && part.name === "edit_document")
+    .map((part) => part.id);
+  const lastEditPartId = editPartIds.at(-1);
   return (
     <div className="flex flex-col gap-3">
       {turn.instruction.trim() || turn.images.length ? (
@@ -39,11 +47,15 @@ export function TraceTurn({ turn, onTogglePart }: TraceTurnProps) {
             }
             if (part.kind === "tool") {
               return (
-                <ToolCallRow
-                  key={part.id}
-                  part={part}
-                  onToggle={() => onTogglePart(part.id)}
-                />
+                <Fragment key={part.id}>
+                  <ToolCallRow
+                    part={part}
+                    onToggle={() => onTogglePart(part.id)}
+                  />
+                  {part.id === lastEditPartId ? (
+                    <SuggestionList setIds={editPartIds} />
+                  ) : null}
+                </Fragment>
               );
             }
             if (!part.text?.trim()) return null;

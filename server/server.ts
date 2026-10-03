@@ -138,7 +138,7 @@ app.post(
       apiKey: VESPPER_API_KEY,
       mcpUrl: VESPPER_MCP_URL,
     });
-    const { author, edits } = request;
+    const { author = DOCX_AUTHOR, edits } = request;
     try {
       let sessionId = request.sessionId;
       if (sessionId === undefined) {

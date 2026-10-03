@@ -115,7 +115,76 @@ export const DocumentUpdateSchema = z.object({
 
 export type DocumentUpdate = z.infer<typeof DocumentUpdateSchema>;
 
-export type HealthResponse = {
-  availableModels?: string[];
-  defaultModel?: string;
+const ProposedEditSchema = z.object({
+  index: z.number(),
+  old: z.string(),
+  new: z.string(),
+  part: z.string(),
+});
+
+export type ProposedEdit = z.infer<typeof ProposedEditSchema>;
+
+/** A suggest-mode `edit_document` result: proposed edits, not applied. */
+export const ProposedEditResultSchema = z.object({
+  status: z.literal("proposed"),
+  suggestions: z.array(ProposedEditSchema),
+  css: z.string(),
+});
+
+export type ProposedEditResult = z.infer<typeof ProposedEditResultSchema>;
+
+/** One pair of a still-streaming edit_document call, already localized. */
+export const SuggestionReadySchema = z.object({
+  type: z.literal("suggestion_ready"),
+  tool_call_id: z.string(),
+  suggestion: ProposedEditSchema,
+  css: z.string(),
+});
+
+export type SuggestionReady = z.infer<typeof SuggestionReadySchema>;
+
+export type SuggestionStatus =
+  | "pending"
+  | "applying"
+  | "applied"
+  | "rejected"
+  | "failed";
+
+export type Suggestion = {
+  /** `${toolCallId}:${index}` */
+  id: string;
+  index: number;
+  /** The resolved anchor; never edited. */
+  old: string;
+  /** The agent's resolved replacement. */
+  proposedNew: string;
+  /** What applying writes: `proposedNew` until the user edits the card. */
+  new: string;
+  status: SuggestionStatus;
+  failure?: { code: string | null; reason: string };
 };
+
+export type SuggestionSet = {
+  id: string;
+  css: string;
+  suggestions: Suggestion[];
+};
+
+export const ApplyEventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("session"), sessionId: z.string() }),
+  z.object({
+    type: z.literal("edit_applied"),
+    docx_b64: z.string(),
+    revision: z.int(),
+  }),
+  z.object({ type: z.literal("suggestion_applied"), id: z.string() }),
+  z.object({
+    type: z.literal("suggestion_failed"),
+    id: z.string(),
+    code: z.nullable(z.string()),
+    reason: z.string(),
+  }),
+  z.object({ type: z.literal("error"), detail: z.string() }),
+]);
+
+export type ApplyEvent = z.infer<typeof ApplyEventSchema>;

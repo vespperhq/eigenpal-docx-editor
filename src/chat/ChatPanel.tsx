@@ -1,17 +1,25 @@
 import { useState } from "react";
 import type { AgentTurn } from "../agent/useAgentTurn";
+import { SuggestionsProvider } from "../suggestions/SuggestionsContext";
+import type { Suggestions } from "../suggestions/useSuggestions";
 import { ChatInputBar } from "./ChatInputBar";
 import { Conversation } from "./Conversation";
 import { useImageAttachments } from "./useImageAttachments";
-import type { ModelSelection } from "./useModels";
+import type { ModelSelection } from "./useHealth";
 
 type ChatPanelProps = {
   agent: AgentTurn;
+  suggestions: Suggestions;
   models: ModelSelection;
   disabled: boolean;
 };
 
-export function ChatPanel({ agent, models, disabled }: ChatPanelProps) {
+export function ChatPanel({
+  agent,
+  suggestions,
+  models,
+  disabled,
+}: ChatPanelProps) {
   const [instruction, setInstruction] = useState("");
   const attachments = useImageAttachments();
 
@@ -25,11 +33,15 @@ export function ChatPanel({ agent, models, disabled }: ChatPanelProps) {
 
   return (
     <aside className="flex min-h-0 flex-col border-r border-border bg-muted">
-      <Conversation
-        turns={agent.turns}
-        hasDocument={!disabled}
-        onTogglePart={agent.togglePart}
-      />
+      <SuggestionsProvider
+        value={{ suggestions, enabled: models.suggestions, busy: agent.busy }}
+      >
+        <Conversation
+          turns={agent.turns}
+          hasDocument={!disabled}
+          onTogglePart={agent.togglePart}
+        />
+      </SuggestionsProvider>
       <ChatInputBar
         instruction={instruction}
         setInstruction={setInstruction}
@@ -40,7 +52,7 @@ export function ChatPanel({ agent, models, disabled }: ChatPanelProps) {
         removeImage={attachments.removeImage}
         models={models}
         busy={agent.busy}
-        disabled={disabled}
+        disabled={disabled || suggestions.applying}
         onSend={send}
         onStop={agent.stop}
       />

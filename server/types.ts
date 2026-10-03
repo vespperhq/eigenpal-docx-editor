@@ -72,7 +72,7 @@ export const ApplyRequestSchema = z
   .object({
     sessionId: z.string().min(1).optional(),
     startIndex: z.int().nonnegative().optional(),
-    author: z.string().min(1),
+    author: z.string().min(1).optional(),
     edits: z.array(SuggestionEditSchema).min(1),
   })
   .refine(

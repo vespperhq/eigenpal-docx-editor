@@ -344,6 +344,11 @@ export function applyTraceEvent(turn: Turn, msg: TraceEvent): Turn {
         result && typeof result === "object" && !Array.isArray(result)
           ? (result as Record<string, unknown>)
           : { result };
+      if (p.name === "edit_document") {
+        // Proposed edits live in the suggestion sets, not in the trace.
+        const { suggestions: _suggestions, css: _css, ...output } = p.output;
+        p.output = output;
+      }
       p.runMs =
         p.toolStartedAt == null
           ? undefined
@@ -403,7 +408,15 @@ export function togglePartOpen(turn: Turn, id: string): Turn {
   };
 }
 
-export function turnsToMessages(turns: Turn[]): ChatMessage[] {
+/**
+ * The conversation as model messages. `getSuggestionReview` returns the note on
+ * what became of one edit_document call's suggestions, which follows the
+ * assistant's summary.
+ */
+export function turnsToMessages(
+  turns: Turn[],
+  getSuggestionReview: (setId: string) => string | undefined
+): ChatMessage[] {
   const out: ChatMessage[] = [];
   for (const turn of turns) {
     if (turn.working) continue;
@@ -413,8 +426,14 @@ export function turnsToMessages(turns: Turn[]): ChatMessage[] {
       turn.images
     );
     if (message) out.push(message);
-    const summary = turn.summary.trim();
-    if (summary) out.push({ role: "assistant", content: summary });
+    const reviews = turn.parts
+      .filter((part) => part.kind === "tool" && part.name === "edit_document")
+      .map((part) => getSuggestionReview(part.id))
+      .filter((review) => review !== undefined);
+    const content = [turn.summary.trim(), ...reviews]
+      .filter(Boolean)
+      .join("\n\n");
+    if (content) out.push({ role: "assistant", content });
   }
   return out;
 }

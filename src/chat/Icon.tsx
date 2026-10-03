@@ -17,6 +17,7 @@ const PATHS: Record<string, string> = {
   send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
   chevron: '<path d="m9 18 6-6-6-6"/>',
   close: '<path d="m18 6-12 12"/><path d="m6 6 12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
 };
 
 type IconProps = {
@@ -38,3 +39,6 @@ export function Icon({ name, className = "" }: IconProps) {
     />
   );
 }
+
+export const iconButtonClassName =
+  "inline-flex size-[30px] items-center justify-center rounded-md border border-transparent bg-transparent p-0 text-muted-foreground hover:bg-muted hover:text-foreground";

@@ -1,10 +1,13 @@
 import {
   DocumentUpdateSchema,
+  SuggestionReadySchema,
   TraceEventType,
   type ChatMessage,
   type DocumentUpdate,
+  type SuggestionReady,
   type TraceEvent,
 } from "../chat/types";
+import { readNdjson } from "./ndjson";
 
 const FETCH_TIMEOUT_MS = 300_000;
 
@@ -15,6 +18,7 @@ export type ProcessArg = {
   signal: AbortSignal;
   onEvent: (event: TraceEvent) => void;
   onDocument: (update: DocumentUpdate) => void;
+  onSuggestionReady: (event: SuggestionReady) => void;
 };
 
 type StreamMessage = {
@@ -35,7 +39,7 @@ function removeDocumentFromEvent(event: TraceEvent): TraceEvent {
   return { ...event, payload: { ...event.payload, result: output } };
 }
 
-async function parseJsonError(resp: Response): Promise<string> {
+export async function parseJsonError(resp: Response): Promise<string> {
   const text = await resp.text();
   try {
     const body = JSON.parse(text) as { error?: string };
@@ -45,40 +49,10 @@ async function parseJsonError(resp: Response): Promise<string> {
   }
 }
 
-async function* readNdjson(
-  body: ReadableStream<Uint8Array>,
-  signal: AbortSignal,
-): AsyncGenerator<StreamMessage> {
-  const reader = body.getReader();
-  const cancel = () => void reader.cancel().catch(() => undefined);
-  signal.addEventListener("abort", cancel, { once: true });
-  const decoder = new TextDecoder();
-  let buf = "";
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (!line) continue;
-        try {
-          yield JSON.parse(line) as StreamMessage;
-        } catch {
-          // Ignore a malformed line and keep streaming.
-        }
-      }
-    }
-  } finally {
-    signal.removeEventListener("abort", cancel);
-  }
-}
-
 /**
  * Streams one agent turn. Every committed document revision goes to
  * `onDocument` as it arrives; the final `done` document is passed there too.
+ * In suggestion mode, each proposed edit goes to `onSuggestionReady` instead.
  */
 export async function streamProcess(arg: ProcessArg): Promise<void> {
   const form = new FormData();
@@ -87,7 +61,7 @@ export async function streamProcess(arg: ProcessArg): Promise<void> {
     new Blob([arg.bytes], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }),
-    "document.docx",
+    "document.docx"
   );
   form.append("messages", JSON.stringify(arg.messages));
   form.append("model", arg.model);
@@ -106,13 +80,15 @@ export async function streamProcess(arg: ProcessArg): Promise<void> {
 
   let finished = false;
   let errorDetail: string | null = null;
-  for await (const msg of readNdjson(resp.body, signal)) {
+  for await (const message of readNdjson(resp.body, signal)) {
+    const msg = message as StreamMessage;
     if (msg.type === "done") finished = true;
     if (msg.type === "edit_applied" || msg.type === "done") {
       const update = DocumentUpdateSchema.safeParse(msg);
-      if (update.success) {
-        arg.onDocument(update.data);
-      }
+      if (update.success) arg.onDocument(update.data);
+    } else if (msg.type === "suggestion_ready") {
+      const ready = SuggestionReadySchema.safeParse(msg);
+      if (ready.success) arg.onSuggestionReady(ready.data);
     } else if (msg.type === TraceEventType.ERROR && msg.detail != null) {
       errorDetail = String(msg.detail);
     } else if (TRACE_EVENT_TYPES.has(msg.type)) {

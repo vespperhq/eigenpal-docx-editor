@@ -3,7 +3,7 @@ import { Icon } from "./Icon";
 import { ImageAttachments } from "./ImageAttachments";
 import { getPastedImageFiles } from "./images";
 import type { MessageImage } from "./types";
-import type { ModelSelection } from "./useModels";
+import type { ModelSelection } from "./useHealth";
 
 const MODEL_LABELS: Record<string, string> = {
   "gpt-5.5": "GPT 5.5",

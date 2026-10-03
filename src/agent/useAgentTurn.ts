@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   createDocumentRefresh,
-  type RefreshFailureCode,
   type RefreshSubmission,
 } from "@docx-editor.dev/react";
 import type { DocxEditorInstance } from "@docx-editor.dev/core/editor";
@@ -13,31 +12,31 @@ import {
   turnsToMessages,
 } from "../chat/trace";
 import {
+  ProposedEditResultSchema,
   TraceEventType,
   type MessageImage,
   type TraceEvent,
   type Turn,
 } from "../chat/types";
+import type { Suggestions } from "../suggestions/useSuggestions";
 import { streamProcess } from "./process";
-import { createUpdateQueue, type UpdateQueue } from "./updateQueue";
+import {
+  createUpdateQueue,
+  describeRefusal,
+  type UpdateQueue,
+} from "./updateQueue";
 
 type UseAgentTurnOptions = {
   editor: DocxEditorInstance | null;
   model: string;
+  suggestions: Suggestions;
 };
 
-function describeRefusal(code: RefreshFailureCode): string {
-  switch (code) {
-    case "local-edits":
-      return "The document was edited while the agent was working, so later agent edits were not applied.";
-    case "invalid-document":
-      return "The server returned a file that is not a valid .docx.";
-    default:
-      return `The editor refused the updated document (${code}).`;
-  }
-}
-
-export function useAgentTurn({ editor, model }: UseAgentTurnOptions) {
+export function useAgentTurn({
+  editor,
+  model,
+  suggestions,
+}: UseAgentTurnOptions) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const activeRef = useRef<{
@@ -82,11 +81,14 @@ export function useAgentTurn({ editor, model }: UseAgentTurnOptions) {
   }
 
   async function send(text: string, images: MessageImage[]) {
-    if (!editor || busy) return;
+    if (!editor || busy || suggestions.applying) return;
     const currentMessage = buildUserMessage(text, undefined, images);
     if (!currentMessage) return;
 
-    const history = [...turnsToMessages(turns), currentMessage];
+    const history = [
+      ...turnsToMessages(turns, suggestions.getReview),
+      currentMessage,
+    ];
     setTurns((previous) => [...previous, emptyTurn(text, undefined, images)]);
 
     const thisRun = { controller: new AbortController(), stopped: false };
@@ -115,6 +117,15 @@ export function useAgentTurn({ editor, model }: UseAgentTurnOptions) {
     };
 
     const queueTraceEvent = (event: TraceEvent) => {
+      if (
+        event.type === TraceEventType.TOOL_RESULT &&
+        event.payload.toolName === "edit_document"
+      ) {
+        const proposed = ProposedEditResultSchema.safeParse(event.payload.result);
+        if (proposed.success) {
+          suggestions.addSet(event.payload.toolCallId, proposed.data);
+        }
+      }
       queuedTraceEvents.push(event);
       const isDelta =
         event.type === TraceEventType.REASONING_DELTA ||
@@ -141,6 +152,7 @@ export function useAgentTurn({ editor, model }: UseAgentTurnOptions) {
         signal: thisRun.controller.signal,
         onEvent: queueTraceEvent,
         onDocument: queue.push,
+        onSuggestionReady: suggestions.addSuggestion,
       });
       await queue.drain();
       flushTraceEventsNow();

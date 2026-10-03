@@ -1,3 +1,4 @@
+import { useSuggestionsContext } from "../suggestions/SuggestionsContext";
 import { Icon } from "./Icon";
 import { JsonHighlight } from "./JsonHighlight";
 import { formatMilliseconds } from "./time";
@@ -62,13 +63,21 @@ export function ToolCallRow({ part, onToggle }: ToolCallRowProps) {
     verb: name,
     icon: "tool",
   };
+  const { enabled: suggestionsEnabled } = useSuggestionsContext();
+  // Suggestion cards show proposed edits, so their raw arguments stay hidden.
+  const proposing = name === "edit_document" && suggestionsEnabled;
   const streaming = part.state === "input-streaming";
   const complete = part.state === "output-available";
   const error = toolError(part);
 
   let primary: string;
   let detail = "";
-  if (name === "edit_document") {
+  if (proposing) {
+    const n = editChangeCount(part);
+    if (error) primary = "Proposing failed";
+    else if (complete) primary = `Proposed ${n ?? 0} ${n === 1 ? "change" : "changes"}`;
+    else primary = "Proposing changes";
+  } else if (name === "edit_document") {
     const n = editChangeCount(part);
     const noun = n === 1 ? "change" : "changes";
     if (error) primary = "Edit failed";
@@ -95,7 +104,7 @@ export function ToolCallRow({ part, onToggle }: ToolCallRowProps) {
 
   const timing = getToolTiming(part);
   const argsText = part.argsText?.trim() ?? "";
-  const hasBox = argsText !== "" && argsText !== "{}";
+  const hasBox = !proposing && argsText !== "" && argsText !== "{}";
   const iconName = !complete ? "loader" : error ? "alert" : display.icon;
   const primaryClass = error
     ? "text-destructive"

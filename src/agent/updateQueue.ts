@@ -1,10 +1,10 @@
 import type {
   DocumentRefresh,
+  RefreshFailureCode,
   RefreshHighlightOptions,
   RefreshResult,
   RefreshSubmission,
 } from "@docx-editor.dev/react";
-import type { DocumentUpdate } from "../chat/types";
 
 const HIGHLIGHT: RefreshHighlightOptions = {
   timeoutMs: 3000,
@@ -13,6 +13,9 @@ const HIGHLIGHT: RefreshHighlightOptions = {
 
 type Refusal = Extract<RefreshResult, { ok: false }>;
 
+/** One cumulative server document, tagged with its session revision. */
+export type RevisionUpdate = { revision: number; docx_b64: string };
+
 export type UpdateQueue = ReturnType<typeof createUpdateQueue>;
 
 function base64ToBytes(base64: string): Uint8Array {
@@ -20,6 +23,17 @@ function base64ToBytes(base64: string): Uint8Array {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
+}
+
+export function describeRefusal(code: RefreshFailureCode): string {
+  switch (code) {
+    case "local-edits":
+      return "The document was edited while the update was running, so later edits were not applied.";
+    case "invalid-document":
+      return "The server returned a file that is not a valid .docx.";
+    default:
+      return `The editor refused the updated document (${code}).`;
+  }
 }
 
 /**
@@ -36,7 +50,7 @@ export function createUpdateQueue(
   let refused: Refusal | null = null;
   let chain = Promise.resolve();
 
-  function push({ revision, docx_b64 }: DocumentUpdate): void {
+  function push({ revision, docx_b64 }: RevisionUpdate): void {
     if (revision <= latest || refused) return;
     latest = revision;
     chain = chain.then(async () => {
