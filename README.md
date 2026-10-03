@@ -1,19 +1,16 @@
 # Vespper × docx-editor
 
-A browser-based Word editing example: a chat on the left, an editable `.docx`
-on the right. A Mastra agent edits the document through
-[Vespper](https://vespper.com), and its edits land in
+A chat beside an editable `.docx`: a Mastra agent edits the document through
+[Vespper](https://vespper.com), and its edits appear in
 [EigenPal's docx-editor](https://github.com/eigenpal/docx-editor) as tracked
 changes.
 
-The example includes the following features:
+Features:
 
-- Suggestion cards to review, edit, accept, or reject the agent's edits
-- Streamed edits through the docx-editor
+- Suggestion cards to review, edit, and apply the agent's edits
+- Live document updates through the docx-editor
   [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
-- Tracked changes
-- Selected-text context: select text in the document to include it in the prompt
-- Pasted image context
+- Selected text and pasted images as prompt context
 - Multi-model selection
 
 ## Prerequisites
@@ -110,30 +107,18 @@ revision number.
 
 ### Updating the editor
 
-The browser never patches the document itself. It loads each new file through
-the docx-editor
+The browser loads each new file through the docx-editor
 [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh),
-the same way for an agent turn in direct mode and for **Apply** in suggestion
-mode:
+for both agent turns and **Apply**:
 
-1. `refresh.capture()` snapshots the open document. Those bytes are what the
-   server edits.
-2. Each `edit_applied` event calls
-   `refresh.applyUpdate({ submission, sequence: revision, bytes })`. The editor
-   replaces the document without remounting and keeps the scroll position. If
-   several revisions arrive during one replacement, only the newest is loaded.
-3. `refresh.highlightChanges()` flashes the new tracked revisions. The review
-   module finds them in the returned file; nothing is diffed in the browser.
-4. `refresh.finish(submission)` closes the update. **Stop** aborts the request
-   and calls `refresh.cancel()`.
+1. `refresh.capture()` snapshots the document that goes to the server.
+2. Each `edit_applied` event calls `refresh.applyUpdate()`, which swaps in the
+   new file and keeps the scroll position.
+3. `refresh.highlightChanges()` flashes the new tracked changes.
+4. `refresh.finish()` closes the update.
 
-The document is read-only while an update runs, because an edit made after
-`capture()` makes the editor refuse the next file. Each accepted file resets the
-editor's selection and undo history.
-
-Steps 2 and 3 live in `src/agent/updateQueue.ts`. The agent turn drives them
-from `src/hooks/useChatConversation.ts`, and **Apply** from
-`src/hooks/useSuggestions.ts`.
+The document is read-only while an update runs. The code is in
+`src/agent/updateQueue.ts`.
 
 ## Development commands
 
