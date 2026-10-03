@@ -29,6 +29,7 @@ import {
 
 type UseChatConversationOptions = {
   instruction: string;
+  selectedContent: string;
   images: MessageImage[];
   imagesLoading: boolean;
   model: string;
@@ -42,6 +43,7 @@ type UseChatConversationOptions = {
 
 export function useChatConversation({
   instruction,
+  selectedContent,
   images,
   imagesLoading,
   model,
@@ -99,7 +101,12 @@ export function useChatConversation({
     if (!editor || busy || imagesLoading || applying) return;
     const text = instruction.trim();
     const imagesForTurn = images;
-    const currentMessage = buildUserMessage(text, undefined, imagesForTurn);
+    const selectedContentForTurn = selectedContent;
+    const currentMessage = buildUserMessage(
+      text,
+      selectedContentForTurn,
+      imagesForTurn
+    );
     if (!currentMessage) return;
 
     const history = [
@@ -109,7 +116,7 @@ export function useChatConversation({
     clearComposer();
     setTurns((previous) => [
       ...previous,
-      emptyTurn(text, undefined, imagesForTurn),
+      emptyTurn(text, selectedContentForTurn, imagesForTurn),
     ]);
 
     const thisRun = { controller: new AbortController(), stopped: false };

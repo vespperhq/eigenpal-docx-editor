@@ -25,6 +25,31 @@ function getModelLabel(id: string): string {
   return MODEL_LABELS[name] ?? name;
 }
 
+function SelectedContent() {
+  const { selectedContent, clearSelectedContent } = useChatComposer();
+  if (!selectedContent) return null;
+  return (
+    <div className="flex items-center gap-2 border-b border-muted-foreground/50 bg-muted-foreground/20 px-3 py-2 text-[13px]">
+      <p
+        className="m-0 min-w-0 flex-1 truncate text-foreground"
+        title={selectedContent}
+      >
+        “{selectedContent}”
+      </p>
+      <span className="shrink-0 text-foreground">selected</span>
+      <button
+        type="button"
+        className="inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground"
+        title="Remove selected content"
+        aria-label="Remove selected content"
+        onClick={clearSelectedContent}
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+  );
+}
+
 export function ChatInputBar() {
   const {
     instruction,
@@ -92,6 +117,7 @@ export function ChatInputBar() {
       onSubmit={onSubmit}
     >
       <div className="overflow-hidden rounded-xl border border-muted-foreground/50 bg-background focus-within:border-brand focus-within:ring-[3px] focus-within:ring-brand/15">
+        <SelectedContent />
         <div className="relative">
           <ImageAttachments images={images} onRemove={removeImage} />
           {imagesLoading ? (

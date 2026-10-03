@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useChatConversation } from "../hooks/useChatConversation";
+import { useEditorSelection } from "../hooks/useEditorSelection";
 import { useHealth } from "../hooks/useHealth";
 import { useImageAttachments } from "../hooks/useImageAttachments";
 import { useSuggestions } from "../hooks/useSuggestions";
@@ -10,6 +11,8 @@ type ChatContextValue = {
   composer: {
     instruction: string;
     setInstruction: (value: string) => void;
+    selectedContent: string;
+    clearSelectedContent: () => void;
     images: ReturnType<typeof useImageAttachments>["images"];
     imageError: ReturnType<typeof useImageAttachments>["imageError"];
     imagesLoading: boolean;
@@ -46,12 +49,14 @@ type ChatProviderProps = {
 // Must render inside `DocxEditor.Root`: its hooks read the editor from it.
 export function ChatProvider({ file, onFileChange, children }: ChatProviderProps) {
   const [instruction, setInstruction] = useState("");
+  const { selectedContent, clearSelectedContent } = useEditorSelection();
   const imageAttachments = useImageAttachments();
   const health = useHealth();
   const suggestions = useSuggestions();
 
   const conversation = useChatConversation({
     instruction,
+    selectedContent,
     images: imageAttachments.images,
     imagesLoading: imageAttachments.imagesLoading,
     model: health.model,
@@ -81,6 +86,8 @@ export function ChatProvider({ file, onFileChange, children }: ChatProviderProps
         composer: {
           instruction,
           setInstruction,
+          selectedContent,
+          clearSelectedContent,
           images: imageAttachments.images,
           imageError: imageAttachments.imageError,
           imagesLoading: imageAttachments.imagesLoading,

@@ -8,12 +8,12 @@ changes.
 
 The example includes the following features:
 
-- Drag-and-drop `.docx` loading
 - Suggestion cards to review, edit, accept, or reject the agent's edits
 - Streamed edits through the docx-editor
   [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
 - Tracked changes rendered as redlines, with a review rail and highlights on new edits
 - Previous change, Next change, and Accept all changes controls
+- Selected-text context: select text in the document to include it in your prompt
 - Pasted image context
 - Multi-model selection
 - Stop and download
@@ -92,7 +92,8 @@ To verify configuration, open
 
 1. Drop a `.docx` onto the right pane, or use **Open .docx**.
 2. Ask for an edit, for example `Change the effective date to January 1, 2027`.
-3. Optionally paste images into the prompt.
+3. Optionally select text in the document to include it as context, or paste
+   images into the prompt.
 
 With suggestions on, each edit appears as a card in the chat while the agent
 writes it. Edit a card's text if you want, then accept or reject it, or use
@@ -159,7 +160,7 @@ eigenpal-docx-editor/
 │   ├── chat/        Chat panel and agent trace rendering
 │   ├── context/     ChatProvider and the hooks that read its state
 │   ├── document/    docx-editor pane, drop zone, and download
-│   ├── hooks/       Conversation, suggestions, and editor actions
+│   ├── hooks/       Conversation, suggestions, selection, and editor actions
 │   └── suggestions/ Suggestion cards, their editor, and the apply client
 ├── .env.example
 └── package.json
