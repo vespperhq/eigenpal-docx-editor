@@ -8,52 +8,36 @@ import {
 
 export type { ChatMessage } from "../shared/messages";
 
-const Base64ImageSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .superRefine((value, context) => {
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value) || value.length % 4 !== 0) {
-      context.addIssue({ code: "custom", message: "invalid image base64" });
-      return;
-    }
-    const payload = Buffer.from(value, "base64");
-    if (!payload.length || payload.toString("base64") !== value) {
-      context.addIssue({ code: "custom", message: "invalid image base64" });
-    } else if (payload.length > MAX_IMAGE_BYTES) {
-      context.addIssue({
-        code: "custom",
-        message: `image exceeds ${MAX_IMAGE_BYTES / (1024 * 1024)} MB`,
-      });
-    }
-  });
+const ImageSchema = z.string().superRefine((value, context) => {
+  const payload = Buffer.from(value, "base64");
+  if (!payload.length || payload.toString("base64") !== value) {
+    context.addIssue({ code: "custom", message: "invalid image base64" });
+  } else if (payload.length > MAX_IMAGE_BYTES) {
+    context.addIssue({ code: "custom", message: "image is too large" });
+  }
+});
 
-const UserMessagePartSchema = z.discriminatedUnion("type", [
+const PartSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text"), text: z.string().trim().min(1) }),
   z.object({
     type: z.literal("image"),
-    image: Base64ImageSchema,
+    image: ImageSchema,
     mimeType: z.enum(SUPPORTED_IMAGE_MIME_TYPES),
   }),
 ]);
 
-const UserMessagePartsSchema = z
-  .array(UserMessagePartSchema)
-  .min(1)
-  .superRefine((parts, context) => {
-    const imageCount = parts.filter((part) => part.type === "image").length;
-    if (imageCount > MAX_IMAGES_PER_MESSAGE) {
-      context.addIssue({
-        code: "custom",
-        message: `at most ${MAX_IMAGES_PER_MESSAGE} images per message`,
-      });
-    }
-  });
-
-const ChatMessageSchema = z.discriminatedUnion("role", [
+const MessageSchema = z.discriminatedUnion("role", [
   z.object({
     role: z.literal("user"),
-    content: z.union([z.string().trim().min(1), UserMessagePartsSchema]),
+    content: z.union([
+      z.string().trim().min(1),
+      z.array(PartSchema).min(1).refine(
+        (parts) =>
+          parts.filter((part) => part.type === "image").length <=
+          MAX_IMAGES_PER_MESSAGE,
+        "too many images"
+      ),
+    ]),
   }),
   z.object({
     role: z.literal("assistant"),
@@ -61,22 +45,11 @@ const ChatMessageSchema = z.discriminatedUnion("role", [
   }),
 ]);
 
-export const ChatMessagesSchema = z.array(ChatMessageSchema);
-
 export function parseChatMessages(raw: unknown): ChatMessage[] {
   if (typeof raw !== "string" || !raw.trim()) return [];
-
-  let decoded: unknown;
-  try {
-    decoded = JSON.parse(raw);
-  } catch {
-    throw new Error("messages must be valid JSON");
-  }
-  const parsed = ChatMessagesSchema.safeParse(decoded);
+  const parsed = z.array(MessageSchema).safeParse(JSON.parse(raw));
   if (!parsed.success) {
-    throw new Error(
-      parsed.error.issues[0]?.message ?? "unknown validation error",
-    );
+    throw new Error(parsed.error.issues[0]?.message ?? "invalid messages");
   }
   return parsed.data;
 }
@@ -85,12 +58,40 @@ export const EditPairSchema = z.object({
   old: z.string(),
   new: z.string().default(""),
 });
-
 export type EditPair = z.infer<typeof EditPairSchema>;
 
-export const McpToolResultSchema = z.record(z.string(), z.unknown());
+export const SuggestionEditSchema = z.object({
+  id: z.string().min(1),
+  old: z.string(),
+  new: z.string(),
+});
 
-export type McpToolResult = z.infer<typeof McpToolResultSchema>;
+// The first apply of a session attaches the document and omits sessionId;
+// later applies join that session's batch with sessionId and startIndex.
+export const ApplyRequestSchema = z
+  .object({
+    sessionId: z.string().min(1).optional(),
+    startIndex: z.int().nonnegative().optional(),
+    author: z.string().min(1),
+    edits: z.array(SuggestionEditSchema).min(1),
+  })
+  .refine(
+    (request) =>
+      (request.sessionId === undefined) === (request.startIndex === undefined),
+    "sessionId and startIndex must be sent together",
+  );
+
+export type ApplyEvent =
+  | { type: "session"; sessionId: string }
+  | { type: "edit_applied"; docx_b64: string; revision: number }
+  | { type: "suggestion_applied"; id: string }
+  | {
+      type: "suggestion_failed";
+      id: string;
+      code: string | null;
+      reason: string;
+    }
+  | { type: "error"; detail: string };
 
 export const CommittedDocumentSchema = z
   .object({
@@ -105,17 +106,10 @@ export const CommittedDocumentSchema = z
     count,
   }));
 
-export type CommittedDocument = z.infer<typeof CommittedDocumentSchema>;
-
 export interface EditInputParser {
   readonly ended: boolean;
   write(delta: string): void;
   finish(): void;
-}
-
-export interface ActiveEditInput {
-  batchId: string;
-  parser: EditInputParser;
 }
 
 export interface RunAgentTurnOptions {

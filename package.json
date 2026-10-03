@@ -1,9 +1,9 @@
 {
-  "name": "vespper-docx-editor",
+  "name": "vespper-eigenpal-docx-editor",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Sample web app: docx-editor + Mastra agent → vespper-docx-mcp, streamed through the document refresh API",
+  "description": "EigenPal's docx-editor with the Vespper DOCX editing agent",
   "scripts": {
     "dev": "concurrently -k -n api,web \"tsx watch server/server.ts\" \"vite\"",
     "build": "vite build",
@@ -26,7 +26,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
-    "vespper": "0.1.1",
+    "vespper": "0.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
