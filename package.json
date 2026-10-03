@@ -1,0 +1,46 @@
+{
+  "name": "vespper-docx-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sample web app: docx-editor + Mastra agent → vespper-docx-mcp, streamed through the document refresh API",
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"tsx watch server/server.ts\" \"vite\"",
+    "build": "vite build",
+    "start": "vite build && NODE_ENV=production tsx server/server.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json --noEmit"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@docx-editor.dev/core": "~2.23.0",
+    "@docx-editor.dev/pro": "~2.23.0",
+    "@docx-editor.dev/react": "~2.23.0",
+    "@mastra/core": "1.38.0",
+    "@mastra/mcp": "1.17.2",
+    "@streamparser/json": "0.0.26",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "vespper": "0.1.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
+  }
+}
