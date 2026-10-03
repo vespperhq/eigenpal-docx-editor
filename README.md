@@ -152,10 +152,12 @@ eigenpal-docx-editor/
 ├── server/          Express API server and Mastra agent
 ├── shared/          Message contracts shared by client and server
 ├── src/
-│   ├── agent/       Streaming client and document refresh orchestration
+│   ├── agent/       Streaming client and document refresh queue
 │   ├── chat/        Chat panel and agent trace rendering
+│   ├── context/     ChatProvider and the hooks that read its state
 │   ├── document/    docx-editor pane, drop zone, and download
-│   └── suggestions/ Suggestion cards, their editor, and the apply flow
+│   ├── hooks/       Conversation, suggestions, and editor actions
+│   └── suggestions/ Suggestion cards, their editor, and the apply client
 ├── .env.example
 └── package.json
 ```

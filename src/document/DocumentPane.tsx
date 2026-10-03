@@ -1,36 +1,28 @@
-import { useRef, useState } from "react";
-import { DocxEditor } from "@docx-editor.dev/react";
-import { DocxEditorReview, reviewModule } from "@docx-editor.dev/pro/react";
-import type { DocxEditorInstance } from "@docx-editor.dev/core/editor";
+import { useEffect, useRef, useState } from "react";
+import { DocxEditor, useDocxEditor } from "@docx-editor.dev/react";
+import { DocxEditorReview } from "@docx-editor.dev/pro/react";
 import "@docx-editor.dev/core/styles/editor.css";
 import { Icon } from "../chat/Icon";
-import { EditorBridge } from "./EditorBridge";
+import { useDocument } from "../context/ChatContext";
 
-// Modules register at mount, so the array must be stable across renders.
-const MODULES = [reviewModule()];
-
-type DocumentPaneProps = {
-  bytes: Uint8Array | undefined;
-  locked: boolean;
-  onFile: (file: File) => void;
-  onEditor: (editor: DocxEditorInstance | null) => void;
-};
-
-export function DocumentPane({
-  bytes,
-  locked,
-  onFile,
-  onEditor,
-}: DocumentPaneProps) {
+export function DocumentPane() {
+  const editor = useDocxEditor();
+  const { file, openFile, locked } = useDocument();
   const [dragging, setDragging] = useState(false);
 
-  function pick(file: File | null | undefined) {
-    if (file?.name.toLowerCase().endsWith(".docx")) onFile(file);
+  // Read-only while the document is being replaced; a local edit would make
+  // the editor refuse the incoming revision.
+  useEffect(() => {
+    if (editor && file) editor.setEditingMode(locked ? "viewing" : "editing");
+  }, [editor, file, locked]);
+
+  function pick(next: File | null | undefined) {
+    if (next?.name.toLowerCase().endsWith(".docx")) void openFile(next);
   }
 
   return (
     <section
-      className="relative flex min-h-0 min-w-0 flex-col bg-background"
+      className="relative flex h-full min-h-0 min-w-0 flex-col bg-background"
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -42,21 +34,13 @@ export function DocumentPane({
         pick(e.dataTransfer.files?.[0]);
       }}
     >
-      {bytes ? (
+      {file ? (
         <div className="docx-editor flex min-h-0 flex-1 flex-col">
-          <DocxEditor.Root
-            document={bytes}
-            modules={MODULES}
-            author="You"
-            mode={locked ? "view" : "edit"}
-          >
-            <EditorBridge onEditor={onEditor} />
-            <DocxEditor.Toolbar />
-            <DocxEditor.Viewport style={{ flex: 1, minHeight: 0 }}>
-              <DocxEditor.Content />
-              <DocxEditorReview />
-            </DocxEditor.Viewport>
-          </DocxEditor.Root>
+          <DocxEditor.Toolbar />
+          <DocxEditor.Viewport style={{ flex: 1, minHeight: 0 }}>
+            <DocxEditor.Content />
+            <DocxEditorReview />
+          </DocxEditor.Viewport>
         </div>
       ) : (
         <DropZone onPick={pick} />

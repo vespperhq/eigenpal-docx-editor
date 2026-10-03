@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import type { Suggestion } from "../chat/types";
 import { buildCardCss } from "./css";
+import { useChatSuggestions, useConversation } from "../context/ChatContext";
 import { SuggestionCard } from "./SuggestionCard";
-import { useSuggestionsContext } from "./SuggestionsContext";
 
 // SuggestionEditor renders card content inside this class.
 const SCOPE = ".vespper-docx";
@@ -24,10 +24,8 @@ function getUniqueSuggestions(suggestions: Suggestion[]): Suggestion[] {
  * first call's group.
  */
 export function SuggestionList({ setIds }: { setIds: string[] }) {
-  const {
-    suggestions: { sets, apply },
-    busy,
-  } = useSuggestionsContext();
+  const { sets, apply } = useChatSuggestions();
+  const { busy } = useConversation();
   const groupSets = setIds.flatMap((id) => (sets[id] ? [sets[id]] : []));
   const cssSource = groupSets.map((set) => set.css).join("\n");
   const css = useMemo(() => buildCardCss(cssSource, SCOPE), [cssSource]);

@@ -34,5 +34,3 @@ export function useHealth() {
 
   return { model, models, modelsLoading, setModel, suggestions };
 }
-
-export type ModelSelection = ReturnType<typeof useHealth>;

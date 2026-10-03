@@ -2,8 +2,8 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { Icon, iconButtonClassName } from "../chat/Icon";
 import type { Suggestion, SuggestionStatus } from "../chat/types";
 import { SuggestionEditor } from "./SuggestionEditor";
-import { useSuggestionsContext } from "./SuggestionsContext";
-import { STALE_ANCHOR_CODES } from "./useSuggestions";
+import { useChatSuggestions, useConversation } from "../context/ChatContext";
+import { STALE_ANCHOR_CODES } from "../hooks/useSuggestions";
 
 const STATUS_ICONS: Partial<
   Record<SuggestionStatus, { name: string; label: string; className: string }>
@@ -36,10 +36,8 @@ function useIsTallerThan(ref: RefObject<HTMLElement | null>, height: number) {
 }
 
 export function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
-  const {
-    suggestions: { apply, reject, edit },
-    busy,
-  } = useSuggestionsContext();
+  const { apply, reject, edit } = useChatSuggestions();
+  const { busy } = useConversation();
   const contentRef = useRef<HTMLDivElement>(null);
   const tall = useIsTallerThan(contentRef, COLLAPSED_HEIGHT_PX);
   const [expanded, setExpanded] = useState(false);

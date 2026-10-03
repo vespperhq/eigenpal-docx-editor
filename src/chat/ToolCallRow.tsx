@@ -1,4 +1,4 @@
-import { useSuggestionsContext } from "../suggestions/SuggestionsContext";
+import { useChatSuggestions } from "../context/ChatContext";
 import { Icon } from "./Icon";
 import { JsonHighlight } from "./JsonHighlight";
 import { formatMilliseconds } from "./time";
@@ -63,7 +63,7 @@ export function ToolCallRow({ part, onToggle }: ToolCallRowProps) {
     verb: name,
     icon: "tool",
   };
-  const { enabled: suggestionsEnabled } = useSuggestionsContext();
+  const { enabled: suggestionsEnabled } = useChatSuggestions();
   // Suggestion cards show proposed edits, so their raw arguments stay hidden.
   const proposing = name === "edit_document" && suggestionsEnabled;
   const streaming = part.state === "input-streaming";

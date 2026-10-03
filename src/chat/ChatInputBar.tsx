@@ -1,9 +1,14 @@
 import type { ClipboardEvent, FormEvent, KeyboardEvent } from "react";
+import {
+  useChatComposer,
+  useChatModels,
+  useChatSuggestions,
+  useConversation,
+  useDocument,
+} from "../context/ChatContext";
 import { Icon } from "./Icon";
 import { ImageAttachments } from "./ImageAttachments";
 import { getPastedImageFiles } from "./images";
-import type { MessageImage } from "./types";
-import type { ModelSelection } from "./useHealth";
 
 const MODEL_LABELS: Record<string, string> = {
   "gpt-5.5": "GPT 5.5",
@@ -20,35 +25,21 @@ function getModelLabel(id: string): string {
   return MODEL_LABELS[name] ?? name;
 }
 
-type ChatInputBarProps = {
-  instruction: string;
-  setInstruction: (value: string) => void;
-  images: MessageImage[];
-  imageError?: string;
-  imagesLoading: boolean;
-  addPastedImages: (files: File[]) => Promise<void>;
-  removeImage: (id: string) => void;
-  models: ModelSelection;
-  busy: boolean;
-  disabled: boolean;
-  onSend: () => void;
-  onStop: () => void;
-};
-
-export function ChatInputBar({
-  instruction,
-  setInstruction,
-  images,
-  imageError,
-  imagesLoading,
-  addPastedImages,
-  removeImage,
-  models: { model, models, modelsLoading, setModel },
-  busy,
-  disabled,
-  onSend,
-  onStop,
-}: ChatInputBarProps) {
+export function ChatInputBar() {
+  const {
+    instruction,
+    setInstruction,
+    images,
+    imageError,
+    imagesLoading,
+    addPastedImages,
+    removeImage,
+  } = useChatComposer();
+  const { model, models, modelsLoading, setModel } = useChatModels();
+  const { busy, send, stop } = useConversation();
+  const { applying } = useChatSuggestions();
+  const { file } = useDocument();
+  const disabled = !file || applying;
   const canSend =
     !disabled &&
     !busy &&
@@ -58,13 +49,13 @@ export function ChatInputBar({
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (canSend) onSend();
+      if (canSend) void send();
     }
   }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (canSend) onSend();
+    if (canSend) void send();
   }
 
   function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
@@ -157,7 +148,7 @@ export function ChatInputBar({
                 className="inline-flex size-7 items-center justify-center rounded-full border border-destructive/45 bg-background text-destructive hover:bg-destructive/10"
                 title="Stop generating"
                 aria-label="Stop generating"
-                onClick={onStop}
+                onClick={stop}
               >
                 <Icon name="stop" />
               </button>

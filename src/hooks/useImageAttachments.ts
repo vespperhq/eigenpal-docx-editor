@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { MAX_IMAGES_PER_MESSAGE, readImageFile } from "./images";
-import type { MessageImage } from "./types";
+import { MAX_IMAGES_PER_MESSAGE, readImageFile } from "../chat/images";
+import type { MessageImage } from "../chat/types";
 
 export function useImageAttachments() {
   const [images, setImages] = useState<MessageImage[]>([]);

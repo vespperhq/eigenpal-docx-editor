@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
 import {
   createDocumentRefresh,
+  useDocxEditor,
   type RefreshSubmission,
 } from "@docx-editor.dev/react";
-import type { DocxEditorInstance } from "@docx-editor.dev/core/editor";
 import {
   createUpdateQueue,
   describeRefusal,
@@ -16,7 +16,11 @@ import type {
   SuggestionReady,
   SuggestionSet,
 } from "../chat/types";
-import { closeApplySession, sendApply, type ApplyEdit } from "./apply";
+import {
+  closeApplySession,
+  sendApply,
+  type ApplyEdit,
+} from "../suggestions/apply";
 
 /** Failure codes for a suggestion whose text changed after it was proposed. */
 export const STALE_ANCHOR_CODES = new Set([
@@ -142,7 +146,8 @@ function describeSuggestionReview(set: SuggestionSet | undefined) {
   return `Suggestion review: ${outcomes.join(", ")}.`;
 }
 
-export function useSuggestions(editor: DocxEditorInstance | null) {
+export function useSuggestions() {
+  const editor = useDocxEditor();
   const [sets, setSets] = useState<Record<string, SuggestionSet>>({});
   const [applying, setApplying] = useState(false);
   const session = useRef<ApplySession | null>(null);
@@ -288,5 +293,3 @@ export function useSuggestions(editor: DocxEditorInstance | null) {
     },
   };
 }
-
-export type Suggestions = ReturnType<typeof useSuggestions>;

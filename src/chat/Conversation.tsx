@@ -1,19 +1,11 @@
 import { useRef } from "react";
+import { useConversation, useDocument } from "../context/ChatContext";
+import { useStickToBottom } from "../hooks/useStickToBottom";
 import { TraceTurn } from "./TraceTurn";
-import type { Turn } from "./types";
-import { useStickToBottom } from "./useStickToBottom";
 
-type ConversationProps = {
-  turns: Turn[];
-  hasDocument: boolean;
-  onTogglePart: (turnIndex: number, id: string) => void;
-};
-
-export function Conversation({
-  turns,
-  hasDocument,
-  onTogglePart,
-}: ConversationProps) {
+export function Conversation() {
+  const { turns, togglePart } = useConversation();
+  const { file } = useDocument();
   const conversationRef = useRef<HTMLDivElement>(null);
   const last = turns[turns.length - 1];
   useStickToBottom(conversationRef, [
@@ -34,7 +26,7 @@ export function Conversation({
             Chat
           </p>
           <p className="mt-2 mb-0 text-[13px] leading-relaxed text-muted-foreground">
-            {hasDocument ? (
+            {file ? (
               <>
                 Ask me to edit the document — e.g.{" "}
                 <em>“change the date in section 4 to January 2024”</em>.
@@ -52,7 +44,7 @@ export function Conversation({
         <TraceTurn
           key={i}
           turn={turn}
-          onTogglePart={(id) => onTogglePart(i, id)}
+          onTogglePart={(id) => togglePart(i, id)}
         />
       ))}
     </div>
