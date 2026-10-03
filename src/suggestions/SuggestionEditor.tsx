@@ -37,7 +37,9 @@ export function SuggestionEditor({
     enablePasteRules: false,
     onUpdate: ({ editor }) => onChange(serializeSuggestionHtml(editor.state.doc)),
   });
-  useEffect(() => editor?.setEditable(editable), [editor, editable]);
+  // Without `false`, Tiptap emits an update, and onChange would replace the
+  // agent's HTML with a re-serialized copy though nothing was typed.
+  useEffect(() => editor?.setEditable(editable, false), [editor, editable]);
   return (
     <EditorContent
       editor={editor}
