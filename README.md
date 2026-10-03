@@ -104,7 +104,8 @@ changes while it works.
 
 The document is read-only while the agent runs or edits are being applied. Use
 the review rail to accept or reject tracked changes, and **Download .docx** to
-save the result.
+save the result. Drag the divider between the chat and the document to resize
+the chat.
 
 ## How it works
 

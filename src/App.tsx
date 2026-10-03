@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { DocxEditor } from "@docx-editor.dev/react";
 import { reviewModule } from "@docx-editor.dev/pro/react";
 import { ChatPanel } from "./chat/ChatPanel";
@@ -22,10 +23,15 @@ export function App() {
       <ChatProvider file={file} onFileChange={setFile}>
         <div className="flex h-full flex-col">
           <Header />
-          <main className="grid min-h-0 flex-1 grid-cols-[minmax(320px,38%)_1fr]">
-            <ChatPanel />
-            <DocumentPane />
-          </main>
+          <Group orientation="horizontal" className="min-h-0 flex-1">
+            <Panel defaultSize="38%" minSize={320} maxSize="65%">
+              <ChatPanel />
+            </Panel>
+            <Separator className="w-px bg-border outline-none transition-colors focus-visible:bg-brand data-[separator=active]:bg-brand data-[separator=hover]:bg-brand/50" />
+            <Panel minSize={360}>
+              <DocumentPane />
+            </Panel>
+          </Group>
         </div>
       </ChatProvider>
     </DocxEditor.Root>
