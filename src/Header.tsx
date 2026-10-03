@@ -12,7 +12,7 @@ export function Header() {
   const actions = useEditorActions();
 
   return (
-    <header className="flex shrink-0 items-center justify-between border-b border-border bg-background px-4 py-2">
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-4 py-2">
       <div className="flex min-w-0 items-center gap-2">
         <h1 className="m-0 text-base font-semibold">Vespper × docx-editor</h1>
         {file ? (
@@ -21,7 +21,40 @@ export function Header() {
           </span>
         ) : null}
       </div>
-      <div className="flex items-center gap-2">
+      {/* Keep the editor's selection when a header button is pressed. */}
+      <div
+        className="flex flex-wrap items-center gap-2"
+        onMouseDown={(e) => {
+          if ((e.target as HTMLElement).closest("button")) e.preventDefault();
+        }}
+      >
+        <button
+          type="button"
+          className={buttonClassName}
+          disabled={!actions.canNavigate}
+          onClick={actions.previousChange}
+          title="Scroll to the previous tracked change"
+        >
+          <Icon name="arrowLeft" /> Previous change
+        </button>
+        <button
+          type="button"
+          className={buttonClassName}
+          disabled={!actions.canNavigate}
+          onClick={actions.nextChange}
+          title="Scroll to the next tracked change"
+        >
+          Next change <Icon name="arrowRight" />
+        </button>
+        <button
+          type="button"
+          className={buttonClassName}
+          disabled={!actions.canAcceptAll}
+          onClick={actions.acceptAllChanges}
+          title="Accept all tracked changes from every author"
+        >
+          <Icon name="checkCheck" /> Accept all changes
+        </button>
         <button
           type="button"
           className={buttonClassName}

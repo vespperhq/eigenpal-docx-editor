@@ -18,6 +18,9 @@ const PATHS: Record<string, string> = {
   chevron: '<path d="m9 18 6-6-6-6"/>',
   close: '<path d="m18 6-12 12"/><path d="m6 6 12 12"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  checkCheck: '<path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>',
+  arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
 };
 
 type IconProps = {

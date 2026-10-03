@@ -13,6 +13,7 @@ The example includes the following features:
 - Streamed edits through the docx-editor
   [document refresh API](https://www.docx-editor.dev/docs/2.x/guides/document-refresh)
 - Tracked changes rendered as redlines, with a review rail and highlights on new edits
+- Previous change, Next change, and Accept all changes controls
 - Pasted image context
 - Multi-model selection
 - Stop and download
@@ -103,7 +104,8 @@ With suggestions off, the agent's edits stream into the document as tracked
 changes while it works.
 
 The document is read-only while the agent runs or edits are being applied. Use
-the review rail to accept or reject tracked changes, and **Download .docx** to
+**Previous change** and **Next change** to step through tracked changes, the
+review rail or **Accept all changes** to resolve them, and **Download .docx** to
 save the result. Drag the divider between the chat and the document to resize
 the chat.
 
