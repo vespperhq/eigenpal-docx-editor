@@ -13,6 +13,10 @@ Features:
 - Selected text and pasted images as prompt context
 - Multi-model selection
 
+## Demo video
+
+[![Watch the docx-editor demo on YouTube](https://img.youtube.com/vi/EHCSoiSnCd4/maxresdefault.jpg)](https://youtu.be/EHCSoiSnCd4)
+
 ## Prerequisites
 
 - Node.js 22.13 or newer
