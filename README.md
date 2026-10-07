@@ -15,7 +15,7 @@ Features:
 
 ## Demo video
 
-[![Watch the docx-editor demo on YouTube](https://img.youtube.com/vi/EHCSoiSnCd4/maxresdefault.jpg)](https://youtu.be/EHCSoiSnCd4)
+[![Watch the docx-editor demo on YouTube](https://img.youtube.com/vi/wpPB7xCfdYM/maxresdefault.jpg)](https://youtu.be/wpPB7xCfdYM)
 
 ## Prerequisites
 
